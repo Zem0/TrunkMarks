@@ -14,8 +14,8 @@ struct AccountGroupView: View {
     let accessToken: String
     @ObservedObject var emojiViewModel: EmojiViewModel
     
-    // Add state for the sort option
-    @State private var sortOption: SortOption = .nameAscending
+    // Store the raw value directly rather than using a computed property
+    @AppStorage("accountSortOption") private var sortOptionRawValue = SortOption.nameAscending.rawValue
     
     // Define sort options
     enum SortOption: String, CaseIterable, Identifiable {
@@ -30,8 +30,9 @@ struct AccountGroupView: View {
     // Computed property that returns sorted accounts based on the selected sort option
     private var sortedAccounts: [Account] {
         let accounts = Array(groupedPosts.keys)
+        let currentSortOption = SortOption(rawValue: sortOptionRawValue) ?? .nameAscending
         
-        switch sortOption {
+        switch currentSortOption {
         case .nameAscending:
             return accounts.sorted { $0.display_name.lowercased() < $1.display_name.lowercased() }
             
@@ -91,9 +92,12 @@ struct AccountGroupView: View {
                                 Text("@\(account.username)")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
-                                Text("\(posts.count) bookmark\(posts.count == 1 ? "" : "s")")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                HStack {
+                                    Image(systemName: "bookmark.fill")
+                                    Text("\(posts.count) bookmark\(posts.count == 1 ? "" : "s")")
+                                }
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                             }
                         }
                         .padding(.vertical, 4)
@@ -106,9 +110,18 @@ struct AccountGroupView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
-                    Picker("Sort by", selection: $sortOption) {
-                        ForEach(SortOption.allCases) { option in
-                            Text(option.rawValue).tag(option)
+                    // Create a Picker that directly modifies the sortOptionRawValue
+                    ForEach(SortOption.allCases) { option in
+                        Button(action: {
+                            sortOptionRawValue = option.rawValue
+                        }) {
+                            HStack {
+                                Text(option.rawValue)
+                                if sortOptionRawValue == option.rawValue {
+                                    Spacer()
+                                    Image(systemName: "checkmark")
+                                }
+                            }
                         }
                     }
                 } label: {

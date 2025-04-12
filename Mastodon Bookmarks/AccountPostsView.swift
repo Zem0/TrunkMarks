@@ -15,12 +15,6 @@ struct AccountPostsView: View {
     let accessToken: String
     @ObservedObject var emojiViewModel: EmojiViewModel
     
-    // Share the same image cache
-    @EnvironmentObject private var imageCache: ImageCache
-    
-    // Track emoji fetches
-    @State private var hasCheckedEmoji = false
-    
     var body: some View {
         VStack {
             List(posts) { status in
@@ -30,27 +24,6 @@ struct AccountPostsView: View {
                     emojiViewModel: emojiViewModel
                 )) {
                     VStack(alignment: .leading, spacing: 8) {
-                        // Account info with avatar
-                        HStack(spacing: 8) {
-                            // Use cached image
-                            CachedAsyncImage(
-                                url: URL(string: status.account.avatar),
-                                cache: imageCache
-                            )
-                            .frame(width: 40, height: 40)
-                            .clipShape(Circle())
-                            
-                            // Account info
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(status.account.display_name)
-                                    .font(.headline)
-                                
-                                Text("@\(status.account.username)")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        
                         // Post content - simple text without emoji support for now
                         Text(formatContent(status.content.stripHTML()))
                             .font(.body)
@@ -70,11 +43,11 @@ struct AccountPostsView: View {
                     .padding(.vertical, 4)
                 }
             }
+            .listStyle(.inset)
             .refreshable {
                 // Pull-to-refresh implementation
                 await refreshBookmarks()
             }
-            .listStyle(.inset)
             .overlay(
                 Group {
                     if bookmarksViewModel.isRefreshing {
@@ -95,15 +68,38 @@ struct AccountPostsView: View {
                 }
             )
         }
-        .navigationTitle(account.display_name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 8) {
+                    // Avatar
+                    AsyncImage(url: URL(string: account.avatar)) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        case .failure:
+                            Image(systemName: "person.circle.fill")
+                        @unknown default:
+                            Image(systemName: "person.circle.fill")
+                        }
+                    }
+                    .frame(width: 30, height: 30)
+                    .clipShape(Circle())
+                    
+                    // Display name
+                    Text(account.display_name)
+                        .font(.headline)
+                }
+            }
+        }
         .onAppear {
             // Check emoji only once per view lifecycle
-            if !hasCheckedEmoji {
-                if emojiViewModel.isCacheStale(for: instanceDomain) {
-                    emojiViewModel.fetchCustomEmoji(for: instanceDomain)
-                }
-                hasCheckedEmoji = true
+            if emojiViewModel.isCacheStale(for: instanceDomain) {
+                emojiViewModel.fetchCustomEmoji(for: instanceDomain)
             }
         }
     }
