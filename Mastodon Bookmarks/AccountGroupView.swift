@@ -54,58 +54,81 @@ struct AccountGroupView: View {
     }
     
     var body: some View {
-        List {
-            ForEach(sortedAccounts, id: \.self) { account in
-                if let posts = groupedPosts[account] {
-                    NavigationLink(destination: AccountPostsView(
-                        account: account,
-                        posts: posts,
-                        instanceDomain: instanceDomain,
-                        bookmarksViewModel: bookmarksViewModel,
-                        accessToken: accessToken,
-                        emojiViewModel: emojiViewModel
-                    )) {
-                        HStack(spacing: 12) {
-                            // Avatar using AsyncImage
-                            AsyncImage(url: URL(string: account.avatar)) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fill)
-                                case .failure:
-                                    Image(systemName: "person.circle.fill")
-                                        .foregroundColor(.gray)
-                                @unknown default:
-                                    Image(systemName: "person.circle.fill")
-                                        .foregroundColor(.gray)
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(Array(sortedAccounts.enumerated()), id: \.element) { index, account in
+                    if let posts = groupedPosts[account] {
+                        NavigationLink(destination: AccountPostsView(
+                            account: account,
+                            posts: posts,
+                            instanceDomain: instanceDomain,
+                            bookmarksViewModel: bookmarksViewModel,
+                            accessToken: accessToken,
+                            emojiViewModel: emojiViewModel
+                        )) {
+                            HStack(spacing: 12) {
+                                // Avatar using AsyncImage
+                                AsyncImage(url: URL(string: account.avatar)) { phase in
+                                    switch phase {
+                                    case .empty:
+                                        ProgressView()
+                                    case .success(let image):
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                    case .failure:
+                                        Image(systemName: "person.circle.fill")
+                                            .foregroundColor(.gray)
+                                    @unknown default:
+                                        Image(systemName: "person.circle.fill")
+                                            .foregroundColor(.gray)
+                                    }
                                 }
-                            }
-                            .frame(width: 50, height: 50)
-                            .clipShape(Circle())
-                            
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(account.display_name)
-                                    .font(.headline)
-                                Text("@\(account.username)")
-                                    .font(.subheadline)
+                                .frame(width: 50, height: 50)
+                                .clipShape(RoundedRectangle(cornerRadius: 15))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 15)
+                                        .stroke(Color.gray.opacity(0.6), lineWidth: 1)
+                                        .shadow(color: Color(.black.opacity(0.6)),radius: 1, x: 0, y: 1)
+                                        .clipShape(RoundedRectangle(cornerRadius: 15))
+                                )
+                                
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(account.display_name)
+                                        .font(.headline)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    
+                                    Text("@\(account.username)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    
+                                    HStack {
+                                        Image(systemName: "bookmark.fill")
+                                        Text("\(posts.count) bookmark\(posts.count == 1 ? "" : "s")")
+                                    }
+                                    .font(.caption)
                                     .foregroundColor(.secondary)
-                                HStack {
-                                    Image(systemName: "bookmark.fill")
-                                    Text("\(posts.count) bookmark\(posts.count == 1 ? "" : "s")")
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                                 }
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 18)
+                            .background(Color(UIColor.systemBackground))
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .padding(.vertical, 4)
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        // Add divider after each item except the last
+                        if index < sortedAccounts.count - 1 {
+                            Divider()
+                                .padding(.leading, 78) // Align with content after avatar
+                        }
                     }
                 }
             }
         }
-        .listStyle(.inset)
         .navigationTitle("Bookmarks")
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {

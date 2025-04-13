@@ -17,35 +17,54 @@ struct AccountPostsView: View {
     
     var body: some View {
         VStack {
-            List(posts) { status in
-                NavigationLink(destination: BookmarkDetailView(
-                    status: status,
-                    instanceDomain: instanceDomain,
-                    emojiViewModel: emojiViewModel
-                )) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        // Post content - simple text without emoji support for now
-                        Text(formatContent(status.content.stripHTML()))
-                            .font(.body)
-                            .lineLimit(3)
-                            .padding(.vertical, 2)
-                        
-                        // Media attachments indicator
-                        if !status.media_attachments.isEmpty {
-                            HStack {
-                                Image(systemName: "photo")
-                                Text("\(status.media_attachments.count) media attachment\(status.media_attachments.count > 1 ? "s" : "")")
+            ScrollView {
+                    VStack(spacing: 0) {
+                        // Skip the first divider by starting with content
+                        ForEach(posts) { status in
+                            VStack(spacing: 0) {
+                                NavigationLink(destination: BookmarkDetailView(
+                                    status: status,
+                                    instanceDomain: instanceDomain,
+                                    emojiViewModel: emojiViewModel
+                                )) {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        // Content remains the same
+                                        Text(formatContent(status.content.stripHTML()))
+                                            .font(.body)
+                                            .lineLimit(3)
+                                            .lineSpacing(5)
+                                            .padding(.vertical, 2)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        
+                                        if !status.media_attachments.isEmpty {
+                                            HStack {
+                                                Image(systemName: "photo")
+                                                Text("\(status.media_attachments.count) media attachment\(status.media_attachments.count > 1 ? "s" : "")")
+                                            }
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
+                                    }
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 18)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .contentShape(Rectangle())  // This is crucial - it makes the entire area tappable
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .frame(maxWidth: .infinity) 
+                                
+                                // Add divider after each item except the last
+                                if status.id != posts.last?.id {
+                                    Divider()
+                                        .padding(.leading, 16)
+                                }
                             }
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
-                    .padding(.vertical, 4)
                 }
-            }
-            .listStyle(.inset)
             .refreshable {
-                // Pull-to-refresh implementation
                 await refreshBookmarks()
             }
             .overlay(
@@ -88,7 +107,13 @@ struct AccountPostsView: View {
                         }
                     }
                     .frame(width: 30, height: 30)
-                    .clipShape(Circle())
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray.opacity(0.6), lineWidth: 1)
+                            .shadow(color: Color(.black.opacity(0.6)),radius: 0.7, x: 0, y: 0.7)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    )
                     
                     // Display name
                     Text(account.display_name)

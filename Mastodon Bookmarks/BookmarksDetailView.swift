@@ -17,35 +17,6 @@ struct BookmarkDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                // Account header with avatar
-                HStack(alignment: .top, spacing: 12) {
-                    AsyncImage(url: URL(string: status.account.avatar)) { image in
-                        image.resizable()
-                            .scaledToFill()
-                            .frame(width: 50, height: 50)
-                            .clipShape(Circle())
-                    } placeholder: {
-                        ProgressView()
-                            .frame(width: 50, height: 50)
-                    }
-
-                    VStack(alignment: .leading) {
-                        // Use EmojiTextView for the username (display_name or username)
-                        EmojiTextView(
-                            text: status.account.display_name.isEmpty ? status.account.username : status.account.display_name,
-                            emojiDict: emojiViewModel.emojiDicts[instanceDomain] ?? [:],
-                            fontSize: 16,
-                            textColor: .primary,
-                            fontWeight: .bold
-                        )
-                        
-                        Text("@\(status.account.username)")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding(.horizontal)
-
                 // Use HTML content viewer instead of EmojiTextView for proper rendering
                 HTMLContentView(
                     htmlContent: status.content,
@@ -101,6 +72,39 @@ struct BookmarkDetailView: View {
         }
         .navigationTitle("Post")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                HStack(spacing: 8) {
+                    // Avatar
+                    AsyncImage(url: URL(string: status.account.avatar)) { phase in
+                        switch phase {
+                        case .empty:
+                            ProgressView()
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                        case .failure:
+                            Image(systemName: "person.circle.fill")
+                        @unknown default:
+                            Image(systemName: "person.circle.fill")
+                        }
+                    }
+                    .frame(width: 30, height: 30)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray.opacity(0.6), lineWidth: 1)
+                            .shadow(color: Color(.black.opacity(0.6)),radius: 0.7, x: 0, y: 0.7)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    )
+                    
+                    // Display name
+                    Text(status.account.display_name)
+                        .font(.headline)
+                }
+            }
+        }
         .onAppear {
             // Fetch emoji data for the current instance domain if the cache is stale
             if emojiViewModel.isCacheStale(for: instanceDomain) {
