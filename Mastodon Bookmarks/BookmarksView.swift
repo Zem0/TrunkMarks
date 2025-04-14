@@ -25,7 +25,7 @@ struct BookmarksView: View {
     }
     
     var body: some View {
-        NavigationView {
+    
             Group {
                 if bookmarksViewModel.isLoading {
                     VStack {
@@ -75,7 +75,7 @@ struct BookmarksView: View {
                     }
                 }
             }
-        }
+        
         .onAppear {
             // Set emoji view model on the bookmarks view model
             bookmarksViewModel.setEmojiViewModel(emojiViewModel)

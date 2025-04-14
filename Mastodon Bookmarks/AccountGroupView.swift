@@ -130,6 +130,7 @@ struct AccountGroupView: View {
             }
         }
         .navigationTitle("Bookmarks")
+            .fontDesign(.rounded)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {

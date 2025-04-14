@@ -14,56 +14,58 @@ struct AccountPostsView: View {
     @ObservedObject var bookmarksViewModel: BookmarksViewModel
     let accessToken: String
     @ObservedObject var emojiViewModel: EmojiViewModel
+    @EnvironmentObject var folderViewModel: FolderViewModel
     
     var body: some View {
         VStack {
             ScrollView {
-                    VStack(spacing: 0) {
-                        // Skip the first divider by starting with content
-                        ForEach(posts) { status in
-                            VStack(spacing: 0) {
-                                NavigationLink(destination: BookmarkDetailView(
-                                    status: status,
-                                    instanceDomain: instanceDomain,
-                                    emojiViewModel: emojiViewModel
-                                )) {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        // Content remains the same
-                                        Text(formatContent(status.content.stripHTML()))
-                                            .font(.body)
-                                            .lineLimit(3)
-                                            .lineSpacing(5)
-                                            .padding(.vertical, 2)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                        
-                                        if !status.media_attachments.isEmpty {
-                                            HStack {
-                                                Image(systemName: "photo")
-                                                Text("\(status.media_attachments.count) media attachment\(status.media_attachments.count > 1 ? "s" : "")")
-                                            }
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(spacing: 0) {
+                    // Skip the first divider by starting with content
+                    ForEach(posts) { status in
+                        VStack(spacing: 0) {
+                            NavigationLink(destination: BookmarkDetailView(
+                                status: status,
+                                instanceDomain: instanceDomain,
+                                emojiViewModel: emojiViewModel
+                            )
+                            .environmentObject(folderViewModel)) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    // Content remains the same
+                                    Text(formatContent(status.content.stripHTML()))
+                                        .font(.body)
+                                        .lineLimit(3)
+                                        .lineSpacing(5)
+                                        .padding(.vertical, 2)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    
+                                    if !status.media_attachments.isEmpty {
+                                        HStack {
+                                            Image(systemName: "photo")
+                                            Text("\(status.media_attachments.count) media attachment\(status.media_attachments.count > 1 ? "s" : "")")
                                         }
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                     }
-                                    .padding(.vertical, 16)
-                                    .padding(.horizontal, 18)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .contentShape(Rectangle())  // This is crucial - it makes the entire area tappable
                                 }
-                                .buttonStyle(PlainButtonStyle())
-                                .frame(maxWidth: .infinity) 
-                                
-                                // Add divider after each item except the last
-                                if status.id != posts.last?.id {
-                                    Divider()
-                                        .padding(.leading, 16)
-                                }
+                                .padding(.vertical, 16)
+                                .padding(.horizontal, 18)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())  // This is crucial - it makes the entire area tappable
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .buttonStyle(PlainButtonStyle())
+                            .frame(maxWidth: .infinity)
+                            
+                            // Add divider after each item except the last
+                            if status.id != posts.last?.id {
+                                Divider()
+                                    .padding(.leading, 16)
+                            }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
+            }
             .refreshable {
                 await refreshBookmarks()
             }

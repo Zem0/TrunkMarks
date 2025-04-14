@@ -12,7 +12,9 @@ struct BookmarkDetailView: View {
     let status: Status
     let instanceDomain: String
     @ObservedObject var emojiViewModel: EmojiViewModel
+    @EnvironmentObject var folderViewModel: FolderViewModel
     @State private var contentHeight: CGFloat = 200 // Default height
+    @State private var showingFolderSheet = false
 
     var body: some View {
         ScrollView {
@@ -104,11 +106,111 @@ struct BookmarkDetailView: View {
                         .font(.headline)
                 }
             }
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showingFolderSheet = true
+                }) {
+                    Image(systemName: "folder.badge.plus")
+                }
+            }
         }
         .onAppear {
             // Fetch emoji data for the current instance domain if the cache is stale
             if emojiViewModel.isCacheStale(for: instanceDomain) {
                 emojiViewModel.fetchCustomEmoji(for: instanceDomain)
+            }
+        }
+        .sheet(isPresented: $showingFolderSheet) {
+            NavigationView {
+                VStack {
+                    if folderViewModel.folders.isEmpty {
+                        // Empty state
+                        VStack(spacing: 20) {
+                            Image(systemName: "folder.badge.plus")
+                                .font(.system(size: 70))
+                                .foregroundColor(.gray)
+                            
+                            Text("No Folders")
+                                .font(.title2)
+                            
+                            Text("Create a folder to organize your bookmarks")
+                                .multilineTextAlignment(.center)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal)
+                            
+                            Button(action: {
+                                // This adds a new folder and assigns the current bookmark to it
+                                let newFolderName = "New Folder"
+                                folderViewModel.createFolder(name: newFolderName)
+                                if let newFolder = folderViewModel.folders.last {
+                                    folderViewModel.addBookmarkToFolder(folderId: newFolder.id, bookmarkId: status.id)
+                                }
+                                showingFolderSheet = false
+                            }) {
+                                Text("Create Folder")
+                                    .padding()
+                                    .background(Color.blue)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(10)
+                            }
+                            .padding(.top)
+                        }
+                        .padding()
+                    } else {
+                        List {
+                            ForEach(folderViewModel.folders) { folder in
+                                let isInFolder = folderViewModel.isBookmarkInFolder(folderId: folder.id, bookmarkId: status.id)
+                                
+                                Button(action: {
+                                    if isInFolder {
+                                        folderViewModel.removeBookmarkFromFolder(folderId: folder.id, bookmarkId: status.id)
+                                    } else {
+                                        folderViewModel.addBookmarkToFolder(folderId: folder.id, bookmarkId: status.id)
+                                    }
+                                }) {
+                                    HStack {
+                                        Image(systemName: "folder.fill")
+                                            .foregroundColor(.blue)
+                                        
+                                        Text(folder.name)
+                                        
+                                        Spacer()
+                                        
+                                        if isInFolder {
+                                            Image(systemName: "checkmark")
+                                                .foregroundColor(.blue)
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            Button(action: {
+                                // Create a new folder
+                                let newFolderName = "New Folder \(folderViewModel.folders.count + 1)"
+                                folderViewModel.createFolder(name: newFolderName)
+                                // Select the last created folder
+                                if let newFolder = folderViewModel.folders.last {
+                                    folderViewModel.addBookmarkToFolder(folderId: newFolder.id, bookmarkId: status.id)
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "folder.badge.plus")
+                                        .foregroundColor(.blue)
+                                    Text("Create New Folder")
+                                }
+                            }
+                        }
+                    }
+                }
+                .navigationTitle("Add to Folder")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") {
+                            showingFolderSheet = false
+                        }
+                    }
+                }
             }
         }
     }
