@@ -38,6 +38,7 @@ struct MainTabView: View {
                 .environmentObject(folderViewModel)
                 .tabItem {
                     Label("Bookmarks", systemImage: "bookmark.fill")
+                        .fontDesign(.rounded)
                 }
                 
                 // Folders Tab

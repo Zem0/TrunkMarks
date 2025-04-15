@@ -124,6 +124,7 @@ struct FolderDetailView: View {
             }
         }
         .navigationTitle(isEditing ? "" : folder.name)
+        .fontDesign(.rounded)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 if isEditing {

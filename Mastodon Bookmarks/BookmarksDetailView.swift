@@ -28,6 +28,7 @@ struct BookmarkDetailView: View {
                 )
                 .frame(height: contentHeight)
                 .padding(.horizontal)
+                .fontDesign(.rounded)
 
                 // Display media attachments (images)
                 VStack(spacing: 12) {
@@ -114,6 +115,7 @@ struct BookmarkDetailView: View {
                 }
             }
         }
+        .fontDesign(.rounded)
         .onAppear {
             // Fetch emoji data for the current instance domain if the cache is stale
             if emojiViewModel.isCacheStale(for: instanceDomain) {
@@ -241,14 +243,20 @@ struct HTMLContentView: UIViewRepresentable {
     
     func updateUIView(_ uiView: WKWebView, context: Context) {
         // Create HTML with proper styling and viewport settings
+        // Note the addition of font-family that includes SF Pro Rounded
         let htmlString = """
         <!DOCTYPE html>
         <html>
         <head>
             <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
             <style>
+                @font-face {
+                    font-family: 'SF Pro Rounded';
+                    src: local('SF Pro Rounded'), local('SFProRounded-Regular');
+                }
+                
                 body {
-                    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                    font-family: 'SF Pro Rounded', -apple-system-rounded, -apple-system, BlinkMacSystemFont, sans-serif;
                     font-size: 17px;
                     line-height: 1.5;
                     margin: 0;
@@ -259,10 +267,12 @@ struct HTMLContentView: UIViewRepresentable {
                 a {
                     color: #1D9BF0;
                     text-decoration: none;
+                    font-family: 'SF Pro Rounded', -apple-system-rounded, -apple-system, sans-serif;
                 }
                 
                 p {
                     margin-bottom: 16px;
+                    font-family: 'SF Pro Rounded', -apple-system-rounded, -apple-system, sans-serif;
                 }
                 
                 img, video {

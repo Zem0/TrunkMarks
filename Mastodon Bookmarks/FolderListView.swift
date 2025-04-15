@@ -107,6 +107,7 @@ struct FolderListView: View {
             }
         }
         .navigationTitle("Folders")
+        .fontDesign(.rounded)
         .toolbar {
             if !folderViewModel.folders.isEmpty {
                 ToolbarItem(placement: .navigationBarTrailing) {

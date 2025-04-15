@@ -15,48 +15,63 @@ struct MastodonBookmarksApp: App {
     @StateObject private var imageCache = ImageCache()
     
     init() {
-        // Create standard appearance
+        // Configure navigation bar appearances
         let standardAppearance = UINavigationBarAppearance()
         standardAppearance.configureWithDefaultBackground()
         
-        // Create transparent appearance for scroll edge (when at top)
         let scrollEdgeAppearance = UINavigationBarAppearance()
         scrollEdgeAppearance.configureWithTransparentBackground()
         
-        // Apply font styling to both appearances
-        if let roundedDescriptor = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .headline)
-            .withDesign(.rounded) {
-            
-            let weightedDescriptor = roundedDescriptor.addingAttributes([
-                UIFontDescriptor.AttributeName.traits: [
-                    UIFontDescriptor.TraitKey.weight: UIFont.Weight.semibold
-                ]
-            ])
-            
-            let titleFont = UIFont(descriptor: weightedDescriptor, size: 17)
-            standardAppearance.titleTextAttributes = [NSAttributedString.Key.font: titleFont]
-            scrollEdgeAppearance.titleTextAttributes = [NSAttributedString.Key.font: titleFont]
+        // Apply rounded fonts to navigation bars
+        if let roundedFont = UIFont.systemFont(ofSize: 17, weight: .semibold).withDesign(.rounded) {
+            standardAppearance.titleTextAttributes = [.font: roundedFont]
+            scrollEdgeAppearance.titleTextAttributes = [.font: roundedFont]
         }
         
-        // Apply font styling for large titles
-        if let largeTitleDescriptor = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .largeTitle)
-            .withDesign(.rounded) {
-            
-            let weightedLargeDescriptor = largeTitleDescriptor.addingAttributes([
-                UIFontDescriptor.AttributeName.traits: [
-                    UIFontDescriptor.TraitKey.weight: UIFont.Weight.bold
-                ]
-            ])
-            
-            let largeTitleFont = UIFont(descriptor: weightedLargeDescriptor, size: 34)
-            standardAppearance.largeTitleTextAttributes = [NSAttributedString.Key.font: largeTitleFont]
-            scrollEdgeAppearance.largeTitleTextAttributes = [NSAttributedString.Key.font: largeTitleFont]
+        if let roundedLargeFont = UIFont.systemFont(ofSize: 34, weight: .bold).withDesign(.rounded) {
+            standardAppearance.largeTitleTextAttributes = [.font: roundedLargeFont]
+            scrollEdgeAppearance.largeTitleTextAttributes = [.font: roundedLargeFont]
         }
         
-        // Apply the different appearances to the navigation bar
+        // Apply rounded font to the back button
+        if let backButtonFont = UIFont.systemFont(ofSize: 17, weight: .regular).withDesign(.rounded) {
+            standardAppearance.backButtonAppearance.normal.titleTextAttributes = [.font: backButtonFont]
+            scrollEdgeAppearance.backButtonAppearance.normal.titleTextAttributes = [.font: backButtonFont]
+        }
+        
         UINavigationBar.appearance().standardAppearance = standardAppearance
         UINavigationBar.appearance().compactAppearance = standardAppearance
         UINavigationBar.appearance().scrollEdgeAppearance = scrollEdgeAppearance
+        
+        // Apply rounded font to all bar button items
+        if let buttonFont = UIFont.systemFont(ofSize: 17).withDesign(.rounded) {
+            UIBarButtonItem.appearance().setTitleTextAttributes([.font: buttonFont], for: .normal)
+            UIBarButtonItem.appearance().setTitleTextAttributes([.font: buttonFont], for: .highlighted)
+            
+            // Specifically for back button items
+            let backButtonAttributes: [NSAttributedString.Key: Any] = [.font: buttonFont]
+            UIBarButtonItem.appearance(whenContainedInInstancesOf: [UINavigationBar.self])
+                .setTitleTextAttributes(backButtonAttributes, for: .normal)
+            UIBarButtonItem.appearance(whenContainedInInstancesOf: [UINavigationBar.self])
+                .setTitleTextAttributes(backButtonAttributes, for: .highlighted)
+        }
+        
+        // Apply rounded font to tab bar items
+        if let tabBarFont = UIFont.systemFont(ofSize: 10, weight: .medium).withDesign(.rounded) {
+            UITabBarItem.appearance().setTitleTextAttributes([.font: tabBarFont], for: .normal)
+            UITabBarItem.appearance().setTitleTextAttributes([.font: tabBarFont], for: .selected)
+            
+            // Additionally, configure the tab bar appearance
+            let tabBarAppearance = UITabBarAppearance()
+            tabBarAppearance.configureWithDefaultBackground()
+            tabBarAppearance.stackedLayoutAppearance.normal.titleTextAttributes = [.font: tabBarFont]
+            tabBarAppearance.stackedLayoutAppearance.selected.titleTextAttributes = [.font: tabBarFont]
+            
+            UITabBar.appearance().standardAppearance = tabBarAppearance
+            if #available(iOS 15.0, *) {
+                UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
+            }
+        }
     }
     
     var body: some Scene {
@@ -67,6 +82,15 @@ struct MastodonBookmarksApp: App {
                 .environmentObject(emojiViewModel)
                 .environmentObject(imageCache)
         }
+    }
+}
+
+extension UIFont {
+    func withDesign(_ design: UIFontDescriptor.SystemDesign) -> UIFont? {
+        guard let descriptor = self.fontDescriptor.withDesign(design) else {
+            return nil
+        }
+        return UIFont(descriptor: descriptor, size: pointSize)
     }
 }
 

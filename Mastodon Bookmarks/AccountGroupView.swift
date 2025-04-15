@@ -130,7 +130,6 @@ struct AccountGroupView: View {
             }
         }
         .navigationTitle("Bookmarks")
-            .fontDesign(.rounded)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
@@ -153,6 +152,7 @@ struct AccountGroupView: View {
                 }
             }
         }
+        .fontDesign(.rounded)
         .onAppear {
             // Check if we should fetch emoji
             if emojiViewModel.isCacheStale(for: instanceDomain) {

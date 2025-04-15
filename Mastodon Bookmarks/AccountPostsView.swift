@@ -123,6 +123,7 @@ struct AccountPostsView: View {
                 }
             }
         }
+        .fontDesign(.rounded)
         .onAppear {
             // Check emoji only once per view lifecycle
             if emojiViewModel.isCacheStale(for: instanceDomain) {
