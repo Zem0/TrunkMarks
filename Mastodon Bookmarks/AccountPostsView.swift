@@ -2,11 +2,90 @@
 //  AccountPostsView.swift
 //  Mastodon Bookmarks
 //
-//  Created by Duncan Horne on 08/04/2025.
-//
 
 import SwiftUI
 
+// Extract the post row into a separate view component
+struct PostRowView: View {
+    let post: Status
+    let index: Int
+    let isFirst: Bool
+    let isLast: Bool
+    let isShortContent: Bool
+    let instanceDomain: String
+    @ObservedObject var emojiViewModel: EmojiViewModel
+    @EnvironmentObject var folderViewModel: FolderViewModel
+    
+    var corners: UIRectCorner {
+        if isFirst && isLast { return .allCorners }
+        if isFirst { return [.topLeft, .topRight] }
+        if isLast { return [.bottomLeft, .bottomRight] }
+        return []
+    }
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            NavigationLink(destination: BookmarkDetailView(
+                status: post,
+                instanceDomain: instanceDomain,
+                emojiViewModel: emojiViewModel
+            )
+            .environmentObject(folderViewModel)) {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top, spacing: 4) {
+                        SmallBlueSquare(number: index + 1,
+                          size: 30,
+                          cornerRadius: 9,
+                          fontSize: 18)
+                        Spacer()
+                        postContentView
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 16)
+                .background(
+                    Color(.secondarySystemGroupedBackground)
+                        .clipShape(RoundedCornerShape(radius: 12, corners: corners))
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            if !isLast {
+                Rectangle()
+                    .fill(Color(.separator).opacity(0.5))
+                    .frame(height: 0.5)
+                    .padding(.leading, 64)
+                    .padding(.trailing, 0)
+                    .background(Color(.secondarySystemGroupedBackground))
+            }
+        }
+        .padding(.bottom, 0)
+    }
+    
+    // Toot content
+    private var postContentView: some View {
+        VStack(alignment: .leading) {
+            HTMLToSwiftUIView(
+                htmlContent: post.content,
+                lineLimit: 3
+            )
+            
+            if !post.media_attachments.isEmpty {
+                Spacer()
+                HStack {
+                    Image(systemName: "photo")
+                    Text("\(post.media_attachments.count) media attachment\(post.media_attachments.count > 1 ? "s" : "")")
+                }
+                .font(.system(.caption, design: .rounded))
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+}
+
+// Main view
 struct AccountPostsView: View {
     let account: Account
     let posts: [Status]
@@ -16,56 +95,37 @@ struct AccountPostsView: View {
     @ObservedObject var emojiViewModel: EmojiViewModel
     @EnvironmentObject var folderViewModel: FolderViewModel
     
+    @State private var processedPosts = Set<String>()
+    
     var body: some View {
         VStack {
             ScrollView {
-                VStack(spacing: 0) {
-                    // Skip the first divider by starting with content
-                    ForEach(posts) { status in
-                        VStack(spacing: 0) {
-                            NavigationLink(destination: BookmarkDetailView(
-                                status: status,
-                                instanceDomain: instanceDomain,
-                                emojiViewModel: emojiViewModel
-                            )
-                            .environmentObject(folderViewModel)) {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    // Content remains the same
-                                    Text(formatContent(status.content.stripHTML()))
-                                        .font(.body)
-                                        .lineLimit(3)
-                                        .lineSpacing(5)
-                                        .padding(.vertical, 2)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    
-                                    if !status.media_attachments.isEmpty {
-                                        HStack {
-                                            Image(systemName: "photo")
-                                            Text("\(status.media_attachments.count) media attachment\(status.media_attachments.count > 1 ? "s" : "")")
-                                        }
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    }
-                                }
-                                .padding(.vertical, 16)
-                                .padding(.horizontal, 18)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())  // This is crucial - it makes the entire area tappable
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                            .frame(maxWidth: .infinity)
-                            
-                            // Add divider after each item except the last
-                            if status.id != posts.last?.id {
-                                Divider()
-                                    .padding(.leading, 16)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(posts.enumerated()), id: \.element.id) { index, post in
+                        let isFirst = index == 0
+                        let isLast = index == posts.count - 1
+                        let strippedContent = post.content.stripHTML()
+                        let isShortContent = strippedContent.count < 50 && !strippedContent.contains("\n")
+                        
+                        PostRowView(
+                            post: post,
+                            index: index,
+                            isFirst: isFirst,
+                            isLast: isLast,
+                            isShortContent: isShortContent,
+                            instanceDomain: instanceDomain,
+                            emojiViewModel: emojiViewModel
+                        )
+                        .fontDesign(.rounded)
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 20)
+                .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 2)
+                
             }
+            .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .refreshable {
                 await refreshBookmarks()
             }
@@ -92,83 +152,53 @@ struct AccountPostsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                HStack(spacing: 8) {
-                    // Avatar
-                    AsyncImage(url: URL(string: account.avatar)) { phase in
-                        switch phase {
-                        case .empty:
-                            ProgressView()
-                        case .success(let image):
-                            image
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                        case .failure:
-                            Image(systemName: "person.circle.fill")
-                        @unknown default:
-                            Image(systemName: "person.circle.fill")
-                        }
-                    }
-                    .frame(width: 30, height: 30)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gray.opacity(0.6), lineWidth: 1)
-                            .shadow(color: Color(.black.opacity(0.6)),radius: 0.7, x: 0, y: 0.7)
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                    )
-                    
-                    // Display name
-                    Text(account.display_name)
-                        .font(.headline)
-                }
+                accountHeaderView
             }
         }
-        .fontDesign(.rounded)
         .onAppear {
-            // Check emoji only once per view lifecycle
             if emojiViewModel.isCacheStale(for: instanceDomain) {
                 emojiViewModel.fetchCustomEmoji(for: instanceDomain)
             }
         }
     }
     
-    // Format content to clean up URLs
-    private func formatContent(_ content: String) -> String {
-        // Regular expression to find URLs
-        let urlPattern = "(https?://)?([\\w-]+\\.)+[\\w-]+(/[\\w- ./?%&=]*)?"
-        let regex = try? NSRegularExpression(pattern: urlPattern, options: [])
-        
-        var formattedContent = content
-        
-        // Find all matches and replace them with shortened URLs
-        if let matches = regex?.matches(in: content, options: [], range: NSRange(location: 0, length: content.utf16.count)) {
-            // Process matches from last to first to avoid changing string indexes
-            for match in matches.reversed() {
-                if let range = Range(match.range, in: content) {
-                    let urlString = String(content[range])
-                    
-                    // Format the URL for display (remove protocol, truncate if too long)
-                    var displayUrl = urlString
-                        .replacingOccurrences(of: "https://", with: "")
-                        .replacingOccurrences(of: "http://", with: "")
-                    
-                    // Truncate long URLs
-                    if displayUrl.count > 30 {
-                        displayUrl = String(displayUrl.prefix(27)) + "..."
+
+    private var accountHeaderView: some View {
+        HStack(spacing: 8) {
+            AsyncImage(url: URL(string: account.avatar)) { phase in
+                switch phase {
+                case .empty:
+                    ProgressView()
+                case .success(let image):
+                    image
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                case .failure:
+                    if account.avatar.contains("preview-") {
+                        Image(account.avatar)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    } else {
+                        Image(systemName: "person.circle.fill")
                     }
-                    
-                    // Replace in the string
-                    if let formattedRange = Range(match.range, in: formattedContent) {
-                        formattedContent = formattedContent.replacingCharacters(in: formattedRange, with: displayUrl)
-                    }
+                @unknown default:
+                    Image(systemName: "person.circle.fill")
                 }
             }
+            .frame(width: 30, height: 30)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.gray.opacity(0.6), lineWidth: 1)
+                    .shadow(color: Color(.black.opacity(0.6)), radius: 0.7, x: 0, y: 0.7)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            )
+            
+            Text(account.display_name)
+                .font(.system(.headline, design: .rounded))
         }
-        
-        return formattedContent
     }
     
-    // Function to refresh bookmarks (used by pull-to-refresh)
     private func refreshBookmarks() async {
         await withCheckedContinuation { continuation in
             DispatchQueue.main.async {
@@ -176,5 +206,19 @@ struct AccountPostsView: View {
                 continuation.resume()
             }
         }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        AccountPostsView(
+            account: PreviewData.sampleAccount,
+            posts: PreviewData.sampleStatuses,
+            instanceDomain: "mastodon.social",
+            bookmarksViewModel: BookmarksViewModel(),
+            accessToken: "preview_token",
+            emojiViewModel: EmojiViewModel()
+        )
+        .environmentObject(FolderViewModel())
     }
 }

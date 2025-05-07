@@ -54,80 +54,105 @@ struct AccountGroupView: View {
     }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 0) {
-                ForEach(Array(sortedAccounts.enumerated()), id: \.element) { index, account in
-                    if let posts = groupedPosts[account] {
-                        NavigationLink(destination: AccountPostsView(
-                            account: account,
-                            posts: posts,
-                            instanceDomain: instanceDomain,
-                            bookmarksViewModel: bookmarksViewModel,
-                            accessToken: accessToken,
-                            emojiViewModel: emojiViewModel
-                        )) {
-                            HStack(spacing: 12) {
-                                // Avatar using AsyncImage
-                                AsyncImage(url: URL(string: account.avatar)) { phase in
-                                    switch phase {
-                                    case .empty:
-                                        ProgressView()
-                                    case .success(let image):
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                    case .failure:
-                                        Image(systemName: "person.circle.fill")
-                                            .foregroundColor(.gray)
-                                    @unknown default:
-                                        Image(systemName: "person.circle.fill")
-                                            .foregroundColor(.gray)
-                                    }
-                                }
-                                .frame(width: 50, height: 50)
-                                .clipShape(RoundedRectangle(cornerRadius: 15))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 15)
-                                        .stroke(Color.gray.opacity(0.6), lineWidth: 1)
-                                        .shadow(color: Color(.black.opacity(0.6)),radius: 1, x: 0, y: 1)
+        VStack {
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(sortedAccounts.enumerated()), id: \.element) { index, account in
+                        if let posts = groupedPosts[account] {
+                            let isFirst = index == 0
+                            let isLast = index == sortedAccounts.count - 1
+                            let corners: UIRectCorner = {
+                                if isFirst && isLast { return .allCorners }
+                                if isFirst { return [.topLeft, .topRight] }
+                                if isLast { return [.bottomLeft, .bottomRight] }
+                                return []
+                            }()
+                            
+                            VStack(spacing: 0) {
+                                NavigationLink(destination: AccountPostsView(
+                                    account: account,
+                                    posts: posts,
+                                    instanceDomain: instanceDomain,
+                                    bookmarksViewModel: bookmarksViewModel,
+                                    accessToken: accessToken,
+                                    emojiViewModel: emojiViewModel
+                                )) {
+                                    HStack(spacing: 12) {
+                                        // Avatar using AsyncImage
+                                        AsyncImage(url: URL(string: account.avatar)) { phase in
+                                            switch phase {
+                                            case .empty:
+                                                ProgressView()
+                                            case .success(let image):
+                                                image
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fill)
+                                            case .failure:
+                                                Image(systemName: "person.circle.fill")
+                                                    .foregroundColor(.gray)
+                                            @unknown default:
+                                                Image(systemName: "person.circle.fill")
+                                                    .foregroundColor(.gray)
+                                            }
+                                        }
+                                        .frame(width: 50, height: 50)
                                         .clipShape(RoundedRectangle(cornerRadius: 15))
-                                )
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(account.display_name)
-                                        .font(.headline)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 15)
+                                                .stroke(Color.gray.opacity(0.6), lineWidth: 1)
+                                                .shadow(color: Color(.black.opacity(0.6)), radius: 1, x: 0, y: 1)
+                                                .clipShape(RoundedRectangle(cornerRadius: 15))
+                                        )
+                                        
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(account.display_name)
+                                                .font(.headline)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                            
+                                            Text("@\(account.username)")
+                                                .font(.subheadline)
+                                                .foregroundColor(.secondary)
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                            
+                                            HStack {
+                                                Image(systemName: "bookmark.fill")
+                                                Text("\(posts.count) bookmark\(posts.count == 1 ? "" : "s")")
+                                            }
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        }
                                         .frame(maxWidth: .infinity, alignment: .leading)
-                                    
-                                    Text("@\(account.username)")
-                                        .font(.subheadline)
-                                        .foregroundColor(.secondary)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    
-                                    HStack {
-                                        Image(systemName: "bookmark.fill")
-                                        Text("\(posts.count) bookmark\(posts.count == 1 ? "" : "s")")
                                     }
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .padding(.vertical, 16)
+                                    .padding(.horizontal, 16)
                                     .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(
+                                        Color(.secondarySystemGroupedBackground)
+                                            .clipShape(RoundedCornerShape(radius: 12, corners: corners))
+                                    )
                                 }
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .buttonStyle(PlainButtonStyle())
+                                
+                                // Add custom divider after each item except the last
+                                if !isLast {
+                                    Rectangle()
+                                        .fill(Color(.separator).opacity(0.5))
+                                        .frame(height: 0.5)
+                                        .padding(.leading, 78) // Align with content after avatar
+                                        .padding(.trailing, 0)
+                                        .background(Color(.secondarySystemGroupedBackground))
+                                }
                             }
-                            .padding(.vertical, 16)
-                            .padding(.horizontal, 18)
-                            .background(Color(UIColor.systemBackground))
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        
-                        // Add divider after each item except the last
-                        if index < sortedAccounts.count - 1 {
-                            Divider()
-                                .padding(.leading, 78) // Align with content after avatar
                         }
                     }
                 }
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 20)
+                .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 2)
             }
+            .background(Color(.systemGroupedBackground).ignoresSafeArea())
         }
         .navigationTitle("Bookmarks")
         .toolbar {
@@ -228,5 +253,34 @@ struct CachedAsyncImage: View {
                 self.image = loadedImage
             }
         }.resume()
+    }
+}
+
+#Preview {
+    NavigationStack {
+        AccountGroupView(
+            groupedPosts: [
+                PreviewData.sampleAccount: PreviewData.sampleStatuses,
+                PreviewData.createAccount(username: "user2", displayName: "Another User"):
+                    [PreviewData.createSampleStatus(id: "123", content: "<p>Sample content</p>")]
+            ],
+            instanceDomain: "mastodon.social",
+            bookmarksViewModel: BookmarksViewModel(),
+            accessToken: "preview_token",
+            emojiViewModel: EmojiViewModel()
+        )
+    }
+}
+
+// Add this helper to PreviewData if needed
+extension PreviewData {
+    static func createAccount(username: String, displayName: String) -> Account {
+        Account(
+            username: username,
+            display_name: displayName,
+            avatar: "PreviewAvatar",
+            acct: username,
+            url: "https://mastodon.social/@\(username)"
+        )
     }
 }

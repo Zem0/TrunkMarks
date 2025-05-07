@@ -58,6 +58,7 @@ struct FolderDetailView: View {
                                     VStack(alignment: .leading, spacing: 8) {
                                         // Account info
                                         HStack {
+                                            // Avatar using AsyncImage
                                             AsyncImage(url: URL(string: status.account.avatar)) { phase in
                                                 switch phase {
                                                 case .empty:
@@ -74,8 +75,14 @@ struct FolderDetailView: View {
                                                         .foregroundColor(.gray)
                                                 }
                                             }
-                                            .frame(width: 40, height: 40)
-                                            .clipShape(Circle())
+                                            .frame(width: 50, height: 50)
+                                            .clipShape(RoundedRectangle(cornerRadius: 15))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 15)
+                                                    .stroke(Color.gray.opacity(0.6), lineWidth: 1)
+                                                    .shadow(color: Color(.black.opacity(0.6)),radius: 1, x: 0, y: 1)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                                            )
                                             
                                             Text(status.account.display_name)
                                                 .font(.headline)
